@@ -6,7 +6,18 @@
 // Uncomment whatever type you're using!
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 
-DHT dht(DHTPIN, DHTTYPE);
+int measurePin = A0; //Pin วัดฝุ่น
+int ledPower = D6;    //Pin Power ที่วัดฝุ่น
+
+int samplingTime = 280;
+int deltaTime = 40;
+int sleepTime = 9680;
+
+float voMeasured = 0;
+float calcVoltage = 0;
+float dustDensity = 0;
+
+DHT dht(DHTPIN, DHTTYPE); //วัดความชื้น
 
 // ตั้งค่า ชื่อ และ password wifi เพื่อเชื่อมต่ออินเทอร์เน็ต.
 
@@ -16,7 +27,11 @@ DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
   Serial.begin(9600);
+
+  //เครื่องวัดฝุ่น
+  pinMode(ledPower, OUTPUT);
   
+  //Wifi
   Serial.begin(115200); Serial.println();
   Serial.println(LINE.getVersion());
   WiFi.begin(SSID, PASSWORD);
@@ -25,12 +40,12 @@ void setup() {
     Serial.print(".");
     delay(400);
   }
-  Serial.println(F("DHTxx test!"));
+  Serial.println(F("วัดความชื้นใช้งานได้"));
   dht.begin();
   pinMode(RELAY_PIN, OUTPUT); //ขา Relay Output
   //Line
   LINE.setToken(LINE_TOKEN);
-  LINE.notify("ทดสอบส่งข้อความ");
+  //LINE.notify("ทดสอบส่งข้อความ");
 }
 
 void loop() {
@@ -45,6 +60,39 @@ void loop() {
   // Read temperature as Fahrenheit (isFahrenheit = true)
   float f = dht.readTemperature(true);
 
+  //วัดฝุ่น
+
+  digitalWrite(ledPower, LOW); // เปิด Power เพื่ออ่านค่า
+  delayMicroseconds(samplingTime);
+  voMeasured = analogRead(measurePin); // อ่านค่าฝุ่น
+  
+  delayMicroseconds(deltaTime);
+  digitalWrite(ledPower, HIGH); // ปิด Power เพื่ออ่านค่า
+  delayMicroseconds(sleepTime);
+
+  calcVoltage = voMeasured * (3.3 / 1024);
+
+  dustDensity = 0.17 * calcVoltage - 0.1; //ความหนาเเน่นของฝุ่น
+
+  //Serial.print("Raw Signal Value (0-1023): ");
+  //Serial.print(voMeasured);
+
+  Serial.print(" - Voltage: ");
+  Serial.print(calcVoltage);
+
+  if (dustDensity <= 0.00) {
+    dustDensity = 0.00;
+  }
+
+  dustDensity = dustDensity * 1000;
+
+  Serial.print(" - Dust Density: ");
+  Serial.print(dustDensity);
+  Serial.println(" µg/m³");
+  delay(50);
+  //
+
+  //วัดความชื้น
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) || isnan(f)) {
     Serial.println(F("Failed to read from DHT sensor!"));
@@ -55,31 +103,40 @@ void loop() {
   float hif = dht.computeHeatIndex(f, h);
   // Compute heat index in Celsius (isFahreheit = false)
   float hic = dht.computeHeatIndex(t, h, false);
-
+  
   //Serial.println("");
   Serial.print(F("Humidity: ")); // Humidity
   Serial.print(h);
   Serial.println(F("%"));
+  Serial.println("--------------");
+  
+  //
 
-  if ((h) >= 91){ // ถ้าถึงค่าที่ตั้งไว้ให้ส่งไปที่ไลน์
-      Serial.print("High Humidity");
- 
+  if ((h) >= 92 || (dustDensity) >= 250){ // ถ้าความชื้นเเละควันถึงค่าที่ตั้งไว้ให้ส่งไปที่ไลน์
+      Serial.print("High Humidity & High DustDensity");
+      //LINE.notify("ส่งข้อความสำเร็จ"); //ส่งข้อความเฉยๆ
+      //delay(2000);
       //func Relay Alert
     while (digitalRead(RELAY_PIN) == LOW) {
       digitalWrite(RELAY_PIN, HIGH);
-      delay(100);
+      delay(50);
       digitalWrite(RELAY_PIN, LOW);
-      delay(100);
+      delay(50);
+      digitalWrite(RELAY_PIN, HIGH);
+      delay(50);
+      digitalWrite(RELAY_PIN, LOW);
+      delay(50);
       
       Serial.println("");
       Serial.print(F("Humidity: ")); // Humidity
       Serial.print(h);
       Serial.println(F("%"));
-      if ((h) >= 91){ //ความชื้นต่ำกว่า 91 ให้ออกจาก Loop
+      Serial.print(" - Dust Density: ");
+      Serial.print(dustDensity);
+      Serial.println(" µg/m³");
+      if ((h) >= 90 || (dustDensity) >= 200 ){ //ความชื้นต่ำกว่า 91 ให้ออกจาก Loop
         break;
       }     
     }
   }
-  //LINE.notify("ส่งข้อความสำเร็จ"); //ส่งข้อความเฉยๆ
-  //delay(2000);
 }
