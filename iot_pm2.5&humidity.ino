@@ -1,6 +1,18 @@
 #include "DHT.h"
 #include <TridentTD_LineNotify.h>
 #include <ESP8266WiFi.h>
+#include "BlynkEdgent.h"
+// Uncomment your board, or configure a custom board in Settings.h
+//#define USE_SPARKFUN_BLYNK_BOARD
+//#define USE_NODE_MCU_BOARD
+//#define USE_WITTY_CLOUD_BOARD
+//#define USE_WEMOS_D1_MINI
+
+#define BLYNK_TEMPLATE_ID "TMPLxxxxxx"
+#define BLYNK_DEVICE_NAME "Device"
+#define BLYNK_FIRMWARE_VERSION "0.1.0"
+#define BLYNK_PRINT Serial
+#define APP_DEBUG
 #define RELAY_PIN 13 //ขา Input Relay
 #define DHTPIN 14     // Digital pin connected to the DHT sensor
 // Uncomment whatever type you're using!
@@ -21,15 +33,15 @@ DHT dht(DHTPIN, DHTTYPE); //วัดความชื้น
 
 // ตั้งค่า ชื่อ และ password wifi เพื่อเชื่อมต่ออินเทอร์เน็ต.
 
-#define SSID "Nice_home2.4G" // ชื่อ  wifi ที่จะเชื่อมต่อ  ในส่วนของผู้สอนใช้ wifi ชื่อ Registers
-#define PASSWORD "polawich123" // รหัส wifi ที่จะเชื่อมต่อ  ในส่วนของผู้สอนใช้ รหัส wifi  12345678
-#define LINE_TOKEN "gaLqXq3EgV8bjtxWuHj9dT4mEBUU8fAOEg9yeO9VoSI" // ใส่ Token ที่ได้มาจากขั้นตอนก่อนหน้า
+#define SSID "yupin" // ชื่อ  wifi ที่จะเชื่อมต่อ  ในส่วนของผู้สอนใช้ wifi ชื่อ Registers
+#define PASSWORD "PIN15638" // รหัส wifi ที่จะเชื่อมต่อ  ในส่วนของผู้สอนใช้ รหัส wifi  12345678
+#define LINE_TOKEN "q9lpSS36E7Aq5Wj9OJdZ37Me33Q9lyy32GzseeuuInZ" // ใส่ Token ที่ได้มาจากขั้นตอนก่อนหน้า
 
 void setup() {
   Serial.begin(9600);
-
   //เครื่องวัดฝุ่น
   pinMode(ledPower, OUTPUT);
+  BlynkEdgent.begin();
   
   //Wifi
   Serial.begin(115200); Serial.println();
@@ -45,13 +57,14 @@ void setup() {
   pinMode(RELAY_PIN, OUTPUT); //ขา Relay Output
   //Line
   LINE.setToken(LINE_TOKEN);
-  //LINE.notify("ทดสอบส่งข้อความ");
+  LINE.notify("ชื้นเกิ้นฝุ่นเยอะเกิ้น");
 }
 
 void loop() {
+   
   // Wait a few seconds between measurements.
   delay(50);
-  
+  BlynkEdgent.run();
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   float h = dht.readHumidity();
@@ -114,7 +127,7 @@ void loop() {
 
   if ((h) >= 92 || (dustDensity) >= 250){ // ถ้าความชื้นเเละควันถึงค่าที่ตั้งไว้ให้ส่งไปที่ไลน์
       Serial.print("High Humidity & High DustDensity");
-      //LINE.notify("ส่งข้อความสำเร็จ"); //ส่งข้อความเฉยๆ
+      LINE.notify("ชื้นเกิ้นฝุ่นเยอะเกิ้น"); //ส่งข้อความเฉยๆ
       //delay(2000);
       //func Relay Alert
     while (digitalRead(RELAY_PIN) == LOW) {
@@ -136,6 +149,8 @@ void loop() {
       Serial.println(" µg/m³");
       if ((h) >= 90 || (dustDensity) >= 200 ){ //ความชื้นต่ำกว่า 91 ให้ออกจาก Loop
         break;
+
+
       }     
     }
   }
