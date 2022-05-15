@@ -1,18 +1,17 @@
 #include "DHT.h"
 #include <TridentTD_LineNotify.h>
 #include <ESP8266WiFi.h>
-#include "BlynkEdgent.h"
+#include <BlynkSimpleEsp32.h>
+char auth[] = "1jIajShg30JO-QQZmlWf1NjdH5FNi2wW";
 // Uncomment your board, or configure a custom board in Settings.h
 //#define USE_SPARKFUN_BLYNK_BOARD
 //#define USE_NODE_MCU_BOARD
 //#define USE_WITTY_CLOUD_BOARD
 //#define USE_WEMOS_D1_MINI
 
-#define BLYNK_TEMPLATE_ID "TMPLxxxxxx"
-#define BLYNK_DEVICE_NAME "Device"
-#define BLYNK_FIRMWARE_VERSION "0.1.0"
 #define BLYNK_PRINT Serial
-#define APP_DEBUG
+#define BLYNK_TEMPLATE_ID "TMPLXtg6ltzI"
+#define BLYNK_DEVICE_NAME "Test"
 #define RELAY_PIN 13 //ขา Input Relay
 #define DHTPIN 14     // Digital pin connected to the DHT sensor
 // Uncomment whatever type you're using!
@@ -41,7 +40,7 @@ void setup() {
   Serial.begin(9600);
   //เครื่องวัดฝุ่น
   pinMode(ledPower, OUTPUT);
-  BlynkEdgent.begin();
+  Blynk.begin(auth, "wifi-ssid", "wifi-pass");
   
   //Wifi
   Serial.begin(115200); Serial.println();
@@ -64,7 +63,7 @@ void loop() {
    
   // Wait a few seconds between measurements.
   delay(50);
-  BlynkEdgent.run();
+  Blynk.run();
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   float h = dht.readHumidity();
